@@ -66,8 +66,7 @@ void update_dis();                  // 更新距離
 void update_state();                // 更新狀態
 void update_status();               // 更新車子現況資料
 float dis(int sensor);              // 回傳sensor測到的距離
-float detect_angle();               // 偵測車子角度
-
+void debug();
 
 void setup(){
   pinMode(Moto1, OUTPUT);
@@ -269,34 +268,12 @@ void go_forward(){
     go_left_moto(left_wheel_v);      
     go_right_moto(right_wheel_v);
   }
-  // float rad = detect_angle();
-  // int a;
-
-  // if (f_v>0) 
-  //   a = 8;
-  // else if(f_v<0)
-  //   a = -8;
-  // else
-  //   a = 0;
-
-  // if(rad == 0) {
-  //   go_forward(f_v);
-  // }
-  // else if(rad > 0){
-  //   go_right_moto(f_v+a);
-  //   go_left_moto(f_v-a);
-  // }else{
-  //   go_right_moto(f_v-a);
-  //   go_left_moto(f_v+a);
-  // }
 }
 
 void go_forward(int v){
-
-    go_right_moto(f_v);
-    go_left_moto(f_v);
+  go_left_moto(v);
+  go_right_moto(v);
 }
-
 
 void go_stop(){
   if(go_forward_id != -1) timer.stop(go_forward_id);
@@ -494,39 +471,4 @@ float dis(int sensor){
   }
   //Serial.println(distance);
   return distance;
-}
-
-
-/************************以下為舊的code************************/
-float detect_angle(){
-  if (right_wheel_v == 0 || left_wheel_v == 0)
-  return 0;
-  float b_r = distance[RIGHT],
-      b_l = distance[LEFT],
-      b_f = distance[FRONT];
-  const float acc = 0.05;     //精準度
-  const float f = 5.5, l = 3.5, r = 3.5;
-  float a_r = dis(RIGHT),
-        a_l = dis(LEFT),
-        a_f = dis(FRONT);
-  float rad = 0;
-  b_r = a_r - b_r;
-  b_l = a_l - b_l;
-  b_f = a_f - a_f;
-
-  if((b_r <= acc && b_r >= -acc) && (b_l <= acc && b_l >= -acc)){
-    //現在是走直線
-    Serial.println("direct!");
-  } else if(b_l > 0 || b_r < 0){
-    //現在是斜向右
-    rad = atan2(a_f + f, a_r + r);
-    Serial.println("right!");
-  } else if(b_r > 0 || b_l < 0){
-    //現在是斜向左
-    rad = -1 * atan2(a_f + f, a_l + l);
-    Serial.println("left!");
-  } else{
-    Serial.println("???");
-  }
-  return rad;  
 }
