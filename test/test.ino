@@ -20,7 +20,7 @@ typedef struct RFL_dis{
 } s_dis;
 /*--------------可以使用的數值------------------*/
 const int f_v = 80;                 // 前進速度
-const int v_max = 100;              // 最大速度
+const int v_max = 85;              // 最大速度
 # define RIGHT 1
 # define FRONT 2
 # define LEFT 3
@@ -45,6 +45,7 @@ int go_forward_id = -1;
 int start_time = 0;
 int end_time = 0;
 /*---------------function 宣告-----------------*/
+void debug();
 void car_loop();
 void writeToSerial();               // debug
 void next_step();                   // 根據next_state，讓自走車執行下一步動作
@@ -65,6 +66,7 @@ void update_dis();                  // 更新距離
 void update_state();                // 更新狀態
 void update_status();               // 更新車子現況資料
 float dis(int sensor);              // 回傳sensor測到的距離
+float detect_angle();               // 偵測車子角度
 
 
 void setup(){
@@ -82,8 +84,12 @@ void setup(){
   // 初始化
   // now_state = STATE_FRONT;
   timer.every(1,car_loop);
-  // timer.every(500,writeToSerial);
-  // timer.every(2000,step_front);
+  timer.every(1,writeToSerial);
+  // timer.every(1000,debug);
+}
+
+void debug(){
+ go_turn(90);
 }
 
 void loop(){
@@ -117,10 +123,12 @@ void writeToSerial(){
   // }
   // Serial.print("distance_data_count: ");
   // Serial.print(distance_data.count());
-  Serial.print(" start_time: ");
-  Serial.print(start_time+200);
-  Serial.print(" now_time: ");
-  Serial.print(millis());
+  // Serial.print(" start_time: ");
+  // Serial.print(start_time+200);
+  // Serial.print(" now_time: ");
+  // Serial.print(millis());
+  Serial.print(" state_change_flag:");
+  Serial.print(state_change_flag);
   Serial.print(" state: ");
   Serial.print(next_state);
   Serial.println("");
@@ -146,10 +154,10 @@ void next_step(){
       step_front_left();
       break;
     case STATE_RIGHT_LEFT:
-      step_
+      step_right_left();
       break;
     case STATE_DEAD:
-      step_dead;
+      step_dead();
       break;
     default:
       go_forward(0);
@@ -157,22 +165,43 @@ void next_step(){
 }
 
 void step_front(){
+  Serial.print("[step_front]\n");
+
   start_time = millis();
-  if(go_forward_id != -1) go_forward_id = timer.every(1,go_forward);  
+  if(go_forward_id == -1){
+    Serial.print("[go_forward_id]\n");
+    go_forward_id = timer.every(1,go_forward);  
+  }
 }
 
 void step_right(){
+  int acc = 12;
+  /* 前進到剩下acc */
+  while(dis(FRONT) > acc){
+    go_forward(f_v);
+  }
+  go_stop();
   /*旋轉順時鐘九十度*/
   go_turn(-90);
   /*前進30cm*/
-  go_forward();
-  delay(950);
+  go_forward(f_v);
+  delay(650);
+  go_stop();
 }
 
 void step_left(){
+  int acc = 12;
+  /* 前進到剩下acc */
+  while(dis(FRONT) > acc){
+    go_forward(f_v);
+  }
+  go_stop();
   /*旋轉逆時鐘九十度*/
   go_turn(90);
   /*前進30cm*/
+  go_forward(f_v);
+  delay(650);
+  go_stop();
 }
 
 void step_front_right(){
@@ -193,18 +222,18 @@ void step_dead(){
   /*直線前進30cm*/
 }
 
-void go_turn(int degree){
+void go_turn(float degree){
   if(degree > 0){
     /*逆時針*/
     go_left_moto(-80);
-    go_right_moto(80)
-    delay((float)350/90*degree);
+    go_right_moto(80);
+    delay((float)398/90*degree);
     go_stop();
   }else if(degree < 0){
     /*順時針*/
-    go_left_moto(70);
-    go_right_moto(-70)
-    delay((float)350/90*degree);
+    go_left_moto(80);
+    go_right_moto(-80);
+    delay((float)390/90*(-degree));
     go_stop();
   }
 }
@@ -240,18 +269,41 @@ void go_forward(){
     go_left_moto(left_wheel_v);      
     go_right_moto(right_wheel_v);
   }
+  // float rad = detect_angle();
+  // int a;
+
+  // if (f_v>0) 
+  //   a = 8;
+  // else if(f_v<0)
+  //   a = -8;
+  // else
+  //   a = 0;
+
+  // if(rad == 0) {
+  //   go_forward(f_v);
+  // }
+  // else if(rad > 0){
+  //   go_right_moto(f_v+a);
+  //   go_left_moto(f_v-a);
+  // }else{
+  //   go_right_moto(f_v-a);
+  //   go_left_moto(f_v+a);
+  // }
 }
 
 void go_forward(int v){
-  go_left_moto(v);
-  go_right_moto(v);
+
+    go_right_moto(f_v);
+    go_left_moto(f_v);
 }
 
+
 void go_stop(){
-  if(go_forward_id != -1;) timer.stop(go_forward_id);
+  if(go_forward_id != -1) timer.stop(go_forward_id);
   go_forward_id = -1;
   go_forward(0);
   end_time = millis();
+  delay(80);
 }
 
 void go_left_moto(int v){
@@ -316,18 +368,21 @@ void update_state(){
     next_state = STATE_RIGHT_LEFT;
   }else if(!no_barrier[LEFT] && !no_barrier[FRONT] && !no_barrier[RIGHT]){
     next_state = STATE_DEAD;
+  }else{
+    next_state = 0;
   }
   if (now_state == next_state){
     state_change_flag = false;
   }else{
     state_change_flag = true;
-    go_forward(0);  //交換state時，停下來
+    go_stop();  //交換state時，停下來
   }
+  now_state = next_state;
 }
 
 void update_status(){
   s_dis first_dis;
-  s_dis change[15] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  s_dis change[10] = {0,0,0,0,0,0,0,0,0,0};
   int i = -1;
   const float right_barrier_dis = 25;
   const float front_barrier_dis = 25;
@@ -335,7 +390,7 @@ void update_status(){
 
   /************** 更新no_barrier *****************/
   // 如果stack裡面有十筆以上的資料了話，就更新資訊
-  if (distance_data.count() >= 15){
+  if (distance_data.count() >= 10){
     first_dis = distance_data.pop();
     // 把每一筆資料pop出來比對
     // change[]存每個值與第一個資料的差
@@ -343,7 +398,7 @@ void update_status(){
       s_dis next_dis;
       next_dis = distance_data.pop();
 
-      if(i!=15){
+      if(i!=10){
         i++;
         change[i].right = next_dis.right - first_dis.right;
         change[i].front = next_dis.front - first_dis.front;
@@ -354,7 +409,7 @@ void update_status(){
     /* 先看right */
     // 與第一筆資料差+-5公分的有多少個
     int count_diff = 0;
-    for(i=0;i<15;i++){
+    for(i=0;i<10;i++){
       if(change[i].right > 5 || change[i].right < -5){
         count_diff++;
       }
@@ -374,7 +429,7 @@ void update_status(){
     /* front */
     // 與第一筆資料差+-5公分的有多少個
     count_diff = 0;
-    for(i=0;i<15;i++){
+    for(i=0;i<10;i++){
       if(change[i].front > 5 || change[i].front < -5){
         count_diff++;
       }
@@ -388,7 +443,7 @@ void update_status(){
     /* left */
     // 與第一筆資料差+-5公分的有多少個
     count_diff = 0;
-    for(i=0;i<15;i++){
+    for(i=0;i<10;i++){
       if(change[i].left > 5 || change[i].left < -5){
         count_diff++;
       }
@@ -439,4 +494,39 @@ float dis(int sensor){
   }
   //Serial.println(distance);
   return distance;
+}
+
+
+/************************以下為舊的code************************/
+float detect_angle(){
+  if (right_wheel_v == 0 || left_wheel_v == 0)
+  return 0;
+  float b_r = distance[RIGHT],
+      b_l = distance[LEFT],
+      b_f = distance[FRONT];
+  const float acc = 0.05;     //精準度
+  const float f = 5.5, l = 3.5, r = 3.5;
+  float a_r = dis(RIGHT),
+        a_l = dis(LEFT),
+        a_f = dis(FRONT);
+  float rad = 0;
+  b_r = a_r - b_r;
+  b_l = a_l - b_l;
+  b_f = a_f - a_f;
+
+  if((b_r <= acc && b_r >= -acc) && (b_l <= acc && b_l >= -acc)){
+    //現在是走直線
+    Serial.println("direct!");
+  } else if(b_l > 0 || b_r < 0){
+    //現在是斜向右
+    rad = atan2(a_f + f, a_r + r);
+    Serial.println("right!");
+  } else if(b_r > 0 || b_l < 0){
+    //現在是斜向左
+    rad = -1 * atan2(a_f + f, a_l + l);
+    Serial.println("left!");
+  } else{
+    Serial.println("???");
+  }
+  return rad;  
 }
