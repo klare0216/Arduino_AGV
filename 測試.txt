@@ -1,3 +1,4 @@
 1.測試 state_change_flag 轉換會正確call next_step
 2.測試 state_change_flag 轉換車子會停下
 3.測試 go_turn 90度正確
+4.測試 go_forward 的直線前進是否正確

@@ -20,6 +20,7 @@ typedef struct RFL_dis{
 } s_dis;
 /*--------------可以使用的數值------------------*/
 const int f_v = 80;                 // 前進速度
+const int v_max = 100;              // 最大速度
 # define RIGHT 1
 # define FRONT 2
 # define LEFT 3
@@ -162,11 +163,15 @@ void step_front(){
 
 void step_right(){
   /*旋轉順時鐘九十度*/
+  go_turn(-90);
   /*前進30cm*/
+  go_forward();
+  delay(950);
 }
 
 void step_left(){
   /*旋轉逆時鐘九十度*/
+  go_turn(90);
   /*前進30cm*/
 }
 
@@ -194,16 +199,47 @@ void go_turn(int degree){
     go_left_moto(-80);
     go_right_moto(80)
     delay((float)350/90*degree);
+    go_stop();
   }else if(degree < 0){
     /*順時針*/
     go_left_moto(70);
     go_right_moto(-70)
     delay((float)350/90*degree);
+    go_stop();
   }
 }
 
 void go_forward(){
-  go_forward(f_v);
+  int acc = 3; // 左右差精準度
+  // 如果輪子沒有速度了話，則兩輪子用初始速度前進
+  if (left_wheel_v == 0 || right_wheel_v == 0) go_forward(f_v);
+  else{ 
+    /*判斷車車是否走直線*/
+    /*判斷車子左右的距離是否平均*/
+    float dis_diff = distance[RIGHT] - distance[LEFT];
+    if(dis_diff > acc){
+      /*左偏 左輪給多一點速度*/
+      /*如果速度太大則讓右輪速度減少*/
+      if(left_wheel_v < v_max){
+        go_left_moto(left_wheel_v + 1);
+        return;
+      }else if(right_wheel_v > f_v){
+        go_right_moto(right_wheel_v - 1);
+      }
+    }else if(-dis_diff > acc){
+      /*右偏 右輪給多一點速度*/
+      /*如果速度太大則讓左輪速度減少*/
+      if(right_wheel_v < v_max){
+        go_right_moto(right_wheel_v + 1);
+        return;
+      }else if(left_wheel_v > f_v){
+        go_left_moto(left_wheel_v - 1);
+      }
+    }
+    /*走直線中 速度不變*/
+    go_left_moto(left_wheel_v);      
+    go_right_moto(right_wheel_v);
+  }
 }
 
 void go_forward(int v){
@@ -212,7 +248,7 @@ void go_forward(int v){
 }
 
 void go_stop(){
-  timer.stop(go_forward_id);
+  if(go_forward_id != -1;) timer.stop(go_forward_id);
   go_forward_id = -1;
   go_forward(0);
   end_time = millis();
