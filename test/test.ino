@@ -19,7 +19,7 @@ typedef struct RFL_dis{
   float left;
 } s_dis;
 /*--------------可以使用的數值------------------*/
-const int f_v = 70;                 // 前進速度
+const int f_v = 80;                 // 前進速度
 const int v_max = 87;              // 最大速度
 # define RIGHT 1
 # define FRONT 2
@@ -83,7 +83,7 @@ void setup(){
   // 初始化
   // now_state = STATE_FRONT;
   timer.every(1,car_loop);
-  // timer.every(1,writeToSerial);
+  timer.every(1,writeToSerial);
   // timer.every(1000,debug);
 }
 
