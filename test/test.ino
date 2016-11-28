@@ -188,6 +188,20 @@ void step_dead(){
   /*直線前進30cm*/
 }
 
+void go_turn(int degree){
+  if(degree > 0){
+    /*逆時針*/
+    go_left_moto(-80);
+    go_right_moto(80)
+    delay((float)350/90*degree);
+  }else if(degree < 0){
+    /*順時針*/
+    go_left_moto(70);
+    go_right_moto(-70)
+    delay((float)350/90*degree);
+  }
+}
+
 void go_forward(){
   go_forward(f_v);
 }
