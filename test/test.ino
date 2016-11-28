@@ -21,6 +21,7 @@ typedef struct RFL_dis{
 /*--------------可以使用的數值------------------*/
 const int f_v = 80;                 // 前進速度
 const int v_max = 87;              // 最大速度
+const int state_change_count_const = 5;
 # define RIGHT 1
 # define FRONT 2
 # define LEFT 3
@@ -40,7 +41,7 @@ bool no_barrier[4] = {1, 1, 1, 1};  // 有障礙與否
 int next_state = 0;                 // 下一個的狀態
 int now_state = 0;                  // 現在的狀態
 StackArray <s_dis> distance_data;   // 暫存15筆偵測資料
-bool state_change_flag = false;     // 當此flag立起，call next_step
+int state_change_count = 0;      // 當此count == state_change_count_const ,call next_step
 int go_forward_id = -1;
 int start_time = 0;
 int end_time = 0;
@@ -98,17 +99,17 @@ void loop(){
 void car_loop(){
   update_dis();     // 更新目前距離
   update_status();  // 更新目前狀態
-  if (state_change_flag) next_step(); // 狀態改變的時候，執行下一步
+  if (state_change_count == state_change_count_const) next_step(); // 狀態改變的時候，執行下一步
   // next_step();
 }
 
 void writeToSerial(){
-  // Serial.print("distance: ");
-  // for(int i = 1;i<4;i++){
-  //   Serial.print(distance[i]);
-  //   Serial.print(" ");
-  // }
-  // Serial.print("    ");
+  Serial.print("distance: ");
+  for(int i = 1;i<4;i++){
+    Serial.print(distance[i]);
+    Serial.print(" ");
+  }
+  Serial.print("    ");
   // Serial.print("block_count: ");
   // Serial.print(block_count);
   // Serial.print("  ");
@@ -127,7 +128,7 @@ void writeToSerial(){
   // Serial.print(" now_time: ");
   // Serial.print(millis());
   Serial.print(" state_change_flag:");
-  Serial.print(state_change_flag);
+  Serial.print(state_change_count);
   Serial.print(" state: ");
   Serial.print(next_state);
   Serial.println("");
@@ -384,9 +385,9 @@ void update_state(){
     next_state = 0;
   }
   if (now_state == next_state){
-    state_change_flag = false;
+    state_change_count ++;
   }else{
-    state_change_flag = true;
+    state_change_count = 0;
     go_stop();  //交換state時，停下來
   }
   now_state = next_state;
@@ -396,20 +397,24 @@ void update_status(){
   s_dis first_dis;
   s_dis change[10] = {0,0,0,0,0,0,0,0,0,0};
   int i = -1;
-  const float right_barrier_dis = 30;
-  const float front_barrier_dis = 30;
-  const float left_barrier_dis = 30;
+  const float right_barrier_dis = 25;
+  const float front_barrier_dis = 20;
+  const float left_barrier_dis = 25;
 
   /************** 更新no_barrier *****************/
   // 如果stack裡面有十筆以上的資料了話，就更新資訊
   if (distance_data.count() >= 10){
     first_dis = distance_data.pop();
+    Serial.print("stack: ");
+    Serial.print(first_dis.left);
+    Serial.print(" ");
     // 把每一筆資料pop出來比對
     // change[]存每個值與第一個資料的差
     while(!distance_data.isEmpty()){
       s_dis next_dis;
       next_dis = distance_data.pop();
-
+      Serial.print(next_dis.left);
+      Serial.print(" ");
       if(i!=10){
         i++;
         change[i].right = next_dis.right - first_dis.right;
