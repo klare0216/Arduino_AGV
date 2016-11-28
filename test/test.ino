@@ -48,6 +48,13 @@ void car_loop();
 void writeToSerial();               // debug
 void next_step();                   // 根據next_state，讓自走車執行下一步動作
 void step_front();                  // case STATE_FRONT's step
+void step_right();
+void step_left();
+void step_front_right();
+void step_front_left();
+void step_right_left();
+void step_dead();
+void go_turn(float degree);         // 旋轉度數
 void go_forward();                  // 前進 with v=f_v
 void go_forward(int v);             // 前進
 void go_stop();                     // 停止
@@ -126,16 +133,22 @@ void next_step(){
       step_front();
       break;
     case STATE_RIGHT:
+      step_right();
       break;
     case STATE_LEFT:
+      step_left();
       break;
     case STATE_FRONT_RIGHT:
+      step_front_right();
       break;
     case STATE_FRONT_LEFT:
+      step_front_left();
       break;
     case STATE_RIGHT_LEFT:
+      step_
       break;
     case STATE_DEAD:
+      step_dead;
       break;
     default:
       go_forward(0);
@@ -147,9 +160,37 @@ void step_front(){
   if(go_forward_id != -1) go_forward_id = timer.every(1,go_forward);  
 }
 
+void step_right(){
+  /*旋轉順時鐘九十度*/
+  /*前進30cm*/
+}
+
+void step_left(){
+  /*旋轉逆時鐘九十度*/
+  /*前進30cm*/
+}
+
+void step_front_right(){
+  /*先右轉*/
+}
+
+void step_front_left(){
+  /*先左轉*/
+}
+
+void step_right_left(){
+
+}
+
+void step_dead(){
+  /*倒退回剛剛的岔路*/
+  /*如果上一個岔路是左轉則後退右轉; 是右轉則後退左轉90度*/
+  /*直線前進30cm*/
+}
+
 void go_forward(){
   go_forward(f_v);
- }
+}
 
 void go_forward(int v){
   go_left_moto(v);

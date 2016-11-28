@@ -1,1 +1,2 @@
 1.測試state_change_flag 轉換會正確call next_step
+2.測試state_change_flag 轉換車子會停下
