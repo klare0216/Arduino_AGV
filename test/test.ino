@@ -42,6 +42,7 @@ StackArray <s_dis> distance_data;   // 暫存15筆偵測資料
 bool state_change_flag = false;     // 當此flag立起，call next_step
 int go_forward_id = -1;
 int start_time = 0;
+int end_time = 0;
 /*---------------function 宣告-----------------*/
 void car_loop();
 void writeToSerial();               // debug
@@ -142,8 +143,8 @@ void next_step(){
 }
 
 void step_front(){
+  start_time = millis();
   if(go_forward_id != -1) go_forward_id = timer.every(1,go_forward);  
-  timer.after(950,go_stop);
 }
 
 void go_forward(){
@@ -159,6 +160,7 @@ void go_stop(){
   timer.stop(go_forward_id);
   go_forward_id = -1;
   go_forward(0);
+  end_time = millis();
 }
 
 void go_left_moto(int v){
@@ -224,10 +226,12 @@ void update_state(){
   }else if(!no_barrier[LEFT] && !no_barrier[FRONT] && !no_barrier[RIGHT]){
     next_state = STATE_DEAD;
   }
-  if (now_state == next_state)
+  if (now_state == next_state){
     state_change_flag = false;
-  else
+  }else{
     state_change_flag = true;
+    go_forward(0);  //交換state時，停下來
+  }
 }
 
 void update_status(){
