@@ -1,0 +1,1 @@
+1.測試state_change_flag 轉換會正確call next_step
