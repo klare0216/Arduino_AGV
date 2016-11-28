@@ -19,8 +19,8 @@ typedef struct RFL_dis{
   float left;
 } s_dis;
 /*--------------可以使用的數值------------------*/
-const int f_v = 80;                 // 前進速度
-const int v_max = 85;              // 最大速度
+const int f_v = 70;                 // 前進速度
+const int v_max = 87;              // 最大速度
 # define RIGHT 1
 # define FRONT 2
 # define LEFT 3
@@ -45,7 +45,6 @@ int go_forward_id = -1;
 int start_time = 0;
 int end_time = 0;
 /*---------------function 宣告-----------------*/
-void debug();
 void car_loop();
 void writeToSerial();               // debug
 void next_step();                   // 根據next_state，讓自走車執行下一步動作
@@ -59,6 +58,7 @@ void step_dead();
 void go_turn(float degree);         // 旋轉度數
 void go_forward();                  // 前進 with v=f_v
 void go_forward(int v);             // 前進
+void go_backward(int v);             // 後退進
 void go_stop();                     // 停止
 void go_left_moto(int v);           // 左輪前進
 void go_right_moto(int v);          // 右輪前進
@@ -83,7 +83,7 @@ void setup(){
   // 初始化
   // now_state = STATE_FRONT;
   timer.every(1,car_loop);
-  timer.every(1,writeToSerial);
+  // timer.every(1,writeToSerial);
   // timer.every(1000,debug);
 }
 
@@ -159,7 +159,7 @@ void next_step(){
       step_dead();
       break;
     default:
-      go_forward(0);
+      go_stop();
   }
 }
 
@@ -174,7 +174,7 @@ void step_front(){
 }
 
 void step_right(){
-  int acc = 12;
+  int acc = 13;
   /* 前進到剩下acc */
   while(dis(FRONT) > acc){
     go_forward(f_v);
@@ -189,7 +189,7 @@ void step_right(){
 }
 
 void step_left(){
-  int acc = 12;
+  int acc = 13;
   /* 前進到剩下acc */
   while(dis(FRONT) > acc){
     go_forward(f_v);
@@ -204,21 +204,51 @@ void step_left(){
 }
 
 void step_front_right(){
+  go_forward(f_v);
+  delay(200);
+  go_stop();
   /*先右轉*/
+  /*旋轉順時鐘九十度*/
+  go_turn(-90);
+  /*前進*/
+  go_forward(f_v);
+  delay(960);
 }
 
 void step_front_left(){
+  go_forward(f_v);
+  delay(200);
+  go_stop();
   /*先左轉*/
+  /*旋轉逆時鐘九十度*/
+  go_turn(90);
+  /*前進*/
+ go_forward(f_v);
+  delay(960);
 }
 
 void step_right_left(){
-
+  go_forward(f_v);
+  delay(200);
+  /*旋轉順時鐘九十度*/
+  go_turn(-90);
+  /*前進*/
+  go_forward(f_v);
+  delay(960);
 }
 
 void step_dead(){
+  /*停在牆壁前面*/
+  int acc = 15;
+  while(dis(FRONT) > acc){
+    go_forward(f_v);
+  }
+  go_stop();
+  go_turn(180);
   /*倒退回剛剛的岔路*/
   /*如果上一個岔路是左轉則後退右轉; 是右轉則後退左轉90度*/
   /*直線前進30cm*/
+
 }
 
 void go_turn(float degree){
@@ -232,13 +262,13 @@ void go_turn(float degree){
     /*順時針*/
     go_left_moto(80);
     go_right_moto(-80);
-    delay((float)390/90*(-degree));
+    delay((float)385/90*(-degree));
     go_stop();
   }
 }
 
 void go_forward(){
-  int acc = 3; // 左右差精準度
+  int acc = 2; // 左右差精準度
   // 如果輪子沒有速度了話，則兩輪子用初始速度前進
   if (left_wheel_v == 0 || right_wheel_v == 0) go_forward(f_v);
   else{ 
@@ -273,6 +303,11 @@ void go_forward(){
 void go_forward(int v){
   go_left_moto(v);
   go_right_moto(v);
+}
+
+void go_backward(int v){
+  go_left_moto(-v);
+  go_right_moto(-v);
 }
 
 void go_stop(){
@@ -361,9 +396,9 @@ void update_status(){
   s_dis first_dis;
   s_dis change[10] = {0,0,0,0,0,0,0,0,0,0};
   int i = -1;
-  const float right_barrier_dis = 25;
-  const float front_barrier_dis = 25;
-  const float left_barrier_dis = 25;
+  const float right_barrier_dis = 30;
+  const float front_barrier_dis = 30;
+  const float left_barrier_dis = 30;
 
   /************** 更新no_barrier *****************/
   // 如果stack裡面有十筆以上的資料了話，就更新資訊
