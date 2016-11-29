@@ -334,10 +334,20 @@ void go_forward(){
     if(distance[RIGHT] < 10){
       go_left_moto(f_v - 2);
       go_right_moto(f_v + 2);
+      delay(50);
+      go_left_moto(f_v + 1);
+      go_right_moto(f_v - 1);
+      delay(10);
+      go_forward(f_v);
       return;
     }else if(distance[LEFT] < 6){
       go_left_moto(f_v - 2);
       go_right_moto(f_v + 2);
+      delay(50);
+      go_left_moto(f_v - 1);
+      go_right_moto(f_v + 1);
+      delay(10);
+      go_forward(f_v);
       return;
     }
     /****************判斷車子左右的距離是否平均****************/
@@ -362,9 +372,29 @@ void go_forward(){
         return;
       }
     }else{
-    /****************走直線中 速度不變****************/
-      go_left_moto(left_wheel_v);      
-      go_right_moto(right_wheel_v);
+      /**********************判斷車子是否是斜的走********************/  
+      float d_r = distance[RIGHT], d_l = distance[LEFT];
+      go_forward(f_v);
+      delay(10);
+      update_dis();
+      if(d_r<distance[RIGHT]&&d_l>distance[LEFT]){
+        /*車子左偏*/
+        /*轉成正的*/
+        go_turn_nonstop(-1);
+        delay(10);
+        go_forward(f_v);
+      }else if(d_r>distance[RIGHT]&&d_l<distance[LEFT]){
+        /*車子右偏*/
+        /*轉成正的*/
+        go_turn_nonstop(-1);
+        delay(10);
+        go_forward(f_v);
+      }
+      else{
+      /****************走直線中 速度不變****************/
+        go_left_moto(left_wheel_v);      
+        go_right_moto(right_wheel_v);
+      }
     }
   }
 }
@@ -570,6 +600,9 @@ void detect_block(){
     start_f_dis = distance[FRONT];
     go_stop();
     delay(2000);
+    /*重置state_change_count，使下一次偵測能夠再度進到next_step()*/
+    state_change_count = 0;
+    
   }
 }
 
