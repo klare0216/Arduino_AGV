@@ -48,12 +48,19 @@ int start_f_dis = 0;
 int diff_f_dis = 0;
 int count_block = 0;
 /*----------------地圖資訊---------------------*/
-// int map[6][6] = {(0, 0, 0, 0, 0, 0),
-//                 (0, 0, 0, 0, 0, 0),
-//                 (0, 0, 0, 0, 0, 0),
-//                 (0, 0, 0, 0, 0, 0),
-//                 (0, 0, 0, 0, 0, 0),
-//                 (0, 0, 0, 0, 0, 0)}
+int mapp[11][11] = {
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+}
 StackArray <int> path_history;   // 紀錄路徑
 /*---------------function 宣告-----------------*/
 void car_loop();
@@ -197,7 +204,7 @@ void step_front(){
 }
 
 void step_right(){
-  int acc = 10;
+  int acc = 15;
   /* 前進到剩下acc */
   while(dis(FRONT) > acc){
     go_forward(f_v);
@@ -217,7 +224,7 @@ void step_right(){
 }
 
 void step_left(){
-  int acc = 10;
+  int acc = 15;
   /* 前進到剩下acc */
   while(dis(FRONT) > acc){
     go_forward(f_v);
@@ -261,6 +268,12 @@ void step_front_left(){
 }
 
 void step_right_left(){
+    int acc = 15;
+    /* 前進到剩下acc */
+  while(dis(FRONT) > acc){
+    go_forward(f_v);
+  }
+  go_stop();
   go_forward(f_v);
   delay(200);
   /*旋轉順時鐘九十度*/
@@ -319,7 +332,7 @@ void go_turn_nonstop(int degree){
 }
 
 void go_forward(){
-  int acc = 2; // 左右差精準度
+  int acc = 5; // 左右差精準度
   // 如果輪子沒有速度了話，則兩輪子用初始速度前進
   if (left_wheel_v == 0 || right_wheel_v == 0) go_forward(f_v);
   else{ 
@@ -381,13 +394,13 @@ void go_forward(){
         /*車子左偏*/
         /*轉成正的*/
         go_turn_nonstop(-1);
-        delay(10);
+        delay(15);
         go_forward(f_v);
       }else if(d_r>distance[RIGHT]&&d_l<distance[LEFT]){
         /*車子右偏*/
         /*轉成正的*/
         go_turn_nonstop(-1);
-        delay(10);
+        delay(15);
         go_forward(f_v);
       }
       else{
