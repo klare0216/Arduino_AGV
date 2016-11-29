@@ -13,3 +13,126 @@
 前進速度: 75
 右轉九十度:秒數
 左轉九十度:秒數
+
+
+----------
+map
+(1, 2, 1, 1, 1, 2),
+(0, 2, 0, 1, 0, 2),
+(0, 2, 0, 1, 1, 2),
+(0, 0, 0, 0, 0, 1),
+(0, 0, 0, 0, 0, 1),
+(0, 0, 0, 0, 0, 1)
+
+後退>左轉>右轉>前進
+
+起始[0][0]
+turn=0;
+n = 1;
+W = row;
+前進:W+n
+後退:W-n
+右轉:W=(W==row)?col:row; turn++; 
+左轉:W=(W==row)?col:row; turn--;
+
+while(turn<0) turn+=4;
+turn%4	| 前進狀態
+0		| row++
+1		| col++
+2		| row--
+3		| col--
+----------------
+stack
+(進入next_step的時候，push進去)
+/***死路判斷***/
+當遇到死路倒退時，flag立起，
+遇到岔路，flag倒下，
+pop出來看，判斷剛剛走過的路，
+走另外一條。
+/***迴圈判斷***/
+左轉或右轉四次(走進迴圈)
+下次岔路不再左轉或右轉而走其他的岔路
+----------------
+STATE_FRONT_RIGHT_LEFT 
+STATE_FRONT 
+STATE_RIGHT
+STATE_LEFT 
+STATE_FRONT_RIGHT 
+STATE_FRONT_LEFT 
+STATE_RIGHT_LEFT 
+STATE_DEAD 
+-----------------------
+1.[stack] 
+--------------------top
+STATE_DEAD 
+STATE_FRONT 
+STATE_FRONT_RIGHT 
+STATE_FRONT 
+----------------------
+
+2.[stack] 
+--------------------top 
+STATE_FRONT_RIGHT <-遇到岔路時pop出來
+STATE_FRONT 
+----------------------
+
+3.[stack] 
+--------------------top 
+STATE_FRONT_LEFT 		<-left=4 :四次左轉了，下次岔路則不再左轉
+STATE_LEFT 				<-left=3
+STATE_RIGHT_LEFT 		<-left=2
+STATE_LEFT 				<-left=1
+STATE_FRONT 
+STATE_FRONT_RIGHT 
+STATE_FRONT 
+STATE_FRONT 
+----------------------
+
+4.[stack] 
+--------------------top 
+STATE_RIGHT_LEFT 		<-left>=4:判斷改為右轉
+STATE_LEFT 				<-left=5
+STATE_FRONT_LEFT 		<-left=4 :四次左轉了，下次岔路則不再左轉
+STATE_LEFT 				<-left=3
+STATE_RIGHT_LEFT 		<-left=2
+STATE_LEFT 				<-left=1
+STATE_FRONT 
+STATE_FRONT_RIGHT 
+STATE_FRONT 
+STATE_FRONT 
+----------------------
+
+
+4.[stack] 
+--------------------top 
+STATE_DEAD 
+STATE_FRONT 
+STATE_FRONT_RIGHT 
+STATE_FRONT 
+STATE_RIGHT_LEFT 		<-left>=4:判斷改為右轉
+STATE_LEFT 				<-left=5
+STATE_FRONT_LEFT 		<-left=4 :四次左轉了，下次岔路則不再左轉
+STATE_LEFT 				<-left=3
+STATE_RIGHT_LEFT 		<-left=2
+STATE_LEFT 				<-left=1
+STATE_FRONT 
+STATE_FRONT_RIGHT 
+STATE_FRONT 
+STATE_FRONT 
+----------------------
+
+5.[stack] 
+--------------------top 
+STATE_FRONT_RIGHT 		<-遇到岔路時pop出來
+STATE_FRONT 
+STATE_RIGHT_LEFT 		<-left>=4:判斷改為右轉
+STATE_LEFT 				<-left=5
+STATE_FRONT_LEFT 		<-left=4 :四次左轉了，下次岔路則不再左轉
+STATE_LEFT 				<-left=3
+STATE_RIGHT_LEFT 		<-left=2
+STATE_LEFT 				<-left=1
+STATE_FRONT 
+STATE_FRONT_RIGHT 
+STATE_FRONT 
+STATE_FRONT 
+----------------------
