@@ -48,6 +48,8 @@ int start_f_dis = 0;
 int diff_f_dis = 0;
 int count_block = 0;
 /*----------------地圖資訊---------------------*/
+int now_col = 5, now_row = 5;
+int turn_count = 0;
 int mapp[11][11] = {
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -73,6 +75,10 @@ void step_front_right();
 void step_front_left();
 void step_right_left();
 void step_dead();
+int cost_front();                   //回傳前方的cost
+int cost_back();
+int cost_left();
+int cost_right();
 void go_turn(float degree);         // 旋轉度數
 void go_turn_nonstop(int degree); // 旋轉不停
 void go_forward();                  // 前進 with v=f_v
@@ -81,6 +87,7 @@ void go_backward(int v);             // 後退進
 void go_stop();                     // 停止
 void go_left_moto(int v);           // 左輪前進
 void go_right_moto(int v);          // 右輪前進
+void update_mapp();                 // 更新地圖資訊
 void update_detect_state();         // 為了來偵測狀態的更新
 void update_dis();                  // 更新距離
 void update_nextstate();            // 更新下一次狀態
@@ -303,6 +310,82 @@ void step_dead(){
 
 }
 
+int cost_front(){
+    /*使turn為正*/
+    while(turn < 0)
+        turn+=4;
+    /*轉了幾次九十度*/
+    turn%=4;
+    /*回傳前方的值*/
+    switch(turn){
+        case 0:
+            return mapp[now_row][now_col+1];
+        case 1:
+            return mapp[now_row-1][now_col];
+        case 2:
+            return mapp[now_row][now_col-1];
+        case 3:
+            return mapp[now_row+1][now_col];
+    }
+}
+
+int cost_back(){
+    /*使turn為正*/
+    while(turn < 0)
+        turn+=4;
+    /*轉了幾次九十度*/
+    turn%=4;
+    /*回傳前方的值*/
+    switch(turn){
+        case 0:
+            return mapp[now_row][now_col-1];
+        case 1:
+            return mapp[now_row+1][now_col];
+        case 2:
+            return mapp[now_row][now_col+1];
+        case 3:
+            return mapp[now_row-1][now_col];
+    }
+}
+
+int cost_right(){
+      /*使turn為正*/
+    while(turn < 0)
+        turn+=4;
+    /*轉了幾次九十度*/
+    turn%=4;
+    /*回傳前方的值*/
+    switch(turn){
+        case 0:
+            return mapp[now_row+1][now_col];
+        case 1:
+            return mapp[now_row][now_col+1];
+        case 2:
+            return mapp[now_row-1][now_col];
+        case 3:
+            return mapp[now_row][now_col-1];
+    }
+}
+
+int cost_left(){
+        /*使turn為正*/
+    while(turn < 0)
+        turn+=4;
+    /*轉了幾次九十度*/
+    turn%=4;
+    /*回傳前方的值*/
+    switch(turn){
+        case 0:
+            return mapp[now_row-1][now_col];
+        case 1:
+            return mapp[now_row][now_col-1];
+        case 2:
+            return mapp[now_row+1][now_col];
+        case 3:
+            return mapp[now_row][now_col+1];
+    }
+}
+
 void go_turn(float degree){
   if(degree > 0){
     /*逆時針*/
@@ -463,6 +546,10 @@ void go_right_moto(int v){
      analogWrite(Moto3, 0);
      analogWrite(Moto4, 0);
   }
+}
+
+void update_mapp(){
+
 }
 
 void update_detect_state(){
