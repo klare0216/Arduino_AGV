@@ -116,11 +116,11 @@ void writeToSerial(){
   // Serial.print("oneblock_last_fdis: ");
   // Serial.print(oneblock_last_fdis);
   // Serial.print("  ");
-  // Serial.print("no_barrier: ");
-  // for(int i = 1;i<4;i++){
-  //   Serial.print(no_barrier[i]);
-  //   Serial.print(" ");
-  // }
+  Serial.print("no_barrier: ");
+  for(int i = 1;i<4;i++){
+    Serial.print(no_barrier[i]);
+    Serial.print(" ");
+  }
   // Serial.print("distance_data_count: ");
   // Serial.print(distance_data.count());
   // Serial.print(" start_time: ");
@@ -263,7 +263,7 @@ void go_turn(float degree){
     /*順時針*/
     go_left_moto(80);
     go_right_moto(-80);
-    delay((float)385/90*(-degree));
+    delay((float)393/90*(-degree));
     go_stop();
   }
 }
@@ -394,83 +394,77 @@ void update_state(){
 }
 
 void update_status(){
-  s_dis first_dis;
-  s_dis change[10] = {0,0,0,0,0,0,0,0,0,0};
-  int i = -1;
+  s_dis dis[5] = {0,0,0,0,0};
+  s_dis change[5];
   const float right_barrier_dis = 25;
-  const float front_barrier_dis = 20;
+  const float front_barrier_dis = 25;
   const float left_barrier_dis = 25;
+  int const acc = 30;
+  /************* 對照資料 **************/
+  // Serial.println(distance_data.count());
+  if(distance_data.count() >= 5){
+    for(int i = 0;i<5;i++){
+      change[i] = dis[i] = distance_data.pop();
+    }
+    /***************處理中間與其他的值的差****************/
+    /*left*/
+    int count_diff = 0; // 數與中間差異太大數量
+    Serial.print("dis.left: ");
+    for(int i = 0;i<5;i++){
+      // Serial.print(change[i].left);
+      // Serial.print(" ");
+      change[i].left -= dis[3].left;
+      if (change[i].left > acc || change[i].left < -acc) count_diff++;
+    }
+    // Serial.print("count_diff: ");
+    // Serial.print(count_diff);
+    // Serial.print("\n");
+    /*如果差異不大才算是正確資料*/
+    if(count_diff == 0){
+        no_barrier[LEFT] = (dis[3].left > left_barrier_dis) ? true : false;
+    }
+    /*right*/
+    count_diff = 0; // 數與中間差異太大數量
+    // Serial.print("dis.right: ");
+    for(int i = 0;i<5;i++){
+      // Serial.print(change[i].right);
+      // Serial.print(" ");
+      change[i].right -= dis[3].right;
+      if (change[i].right > acc || change[i].right < -acc) count_diff++;
+    }
+    // Serial.print("count_diff: ");
+    // Serial.print(count_diff);
+    // Serial.print("\n");
 
-  /************** 更新no_barrier *****************/
-  // 如果stack裡面有十筆以上的資料了話，就更新資訊
-  if (distance_data.count() >= 10){
-    first_dis = distance_data.pop();
-    Serial.print("stack: ");
-    Serial.print(first_dis.left);
-    Serial.print(" ");
-    // 把每一筆資料pop出來比對
-    // change[]存每個值與第一個資料的差
-    while(!distance_data.isEmpty()){
-      s_dis next_dis;
-      next_dis = distance_data.pop();
-      Serial.print(next_dis.left);
-      Serial.print(" ");
-      if(i!=10){
-        i++;
-        change[i].right = next_dis.right - first_dis.right;
-        change[i].front = next_dis.front - first_dis.front;
-        change[i].front = next_dis.front - first_dis.front;
-      }
-    }      
+    /*如果差異不大才算是正確資料*/
+    if(count_diff == 0){
+        no_barrier[RIGHT] = (dis[3].right > right_barrier_dis) ? true : false;
+    }
+    /*front*/
+    count_diff = 0; // 數與中間差異太大數量
+    // Serial.print("dis.front: ");
+    for(int i = 0;i<5;i++){
+      // Serial.print(change[i].front);
+      // Serial.print(" ");
+      change[i].front -= dis[3].front;
+      if (change[i].front > acc || change[i].front < -acc) count_diff++;
+    }
+    // Serial.print("count_diff: ");
+    // Serial.print(count_diff);
+    // Serial.print("\n");
 
-    /* 先看right */
-    // 與第一筆資料差+-5公分的有多少個
-    int count_diff = 0;
-    for(i=0;i<10;i++){
-      if(change[i].right > 5 || change[i].right < -5){
-        count_diff++;
-      }
+    /*如果差異不大才算是正確資料*/
+    if(count_diff == 0){
+        no_barrier[FRONT] = (dis[3].front > front_barrier_dis) ? true : false;
     }
-    if(count_diff < 4){
-      // 表示大部分跟第一筆資料差不多，第一筆資料為主，更新狀態
-      // debug-------------------------------
-      // Serial.print("update_right: ");
-      // float time = millis();
-      // Serial.print((time - start_time)/1000);
-      // Serial.print("\n");
-      // start_time = time;
-      // debug-------------------------------
-      no_barrier[RIGHT] = (first_dis.right > right_barrier_dis) ? true : false;
-    }
-
-    /* front */
-    // 與第一筆資料差+-5公分的有多少個
-    count_diff = 0;
-    for(i=0;i<10;i++){
-      if(change[i].front > 5 || change[i].front < -5){
-        count_diff++;
-      }
-    }
-    if(count_diff < 4){
-      // 表示大部分跟第一筆資料差不多，第一筆資料為主，更新狀態
-      // Serial.print("update_front\n");
-      no_barrier[FRONT] = (first_dis.front > front_barrier_dis) ? true : false;
-    }
-
-    /* left */
-    // 與第一筆資料差+-5公分的有多少個
-    count_diff = 0;
-    for(i=0;i<10;i++){
-      if(change[i].left > 5 || change[i].left < -5){
-        count_diff++;
-      }
-    }
-    if(count_diff < 4){
-      // 表示大部分跟第一筆資料差不多，第一筆資料為主，更新狀態
-      // Serial.print("update_left\n");
-      no_barrier[LEFT] = (first_dis.left > left_barrier_dis) ? true : false;
-    }
+      /*把新的四個資料Push回去*/
+    distance_data.push(dis[3]);
+    distance_data.push(dis[2]);
+    distance_data.push(dis[1]);
+    distance_data.push(dis[0]);
   }
+
+
   /************** 更新next_state *****************/
   update_state();
 
