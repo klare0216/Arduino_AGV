@@ -350,18 +350,18 @@ void go_forward(){
     /*左後退*/
       go_right_moto(-90);
       go_left_moto(-75);
-      delay(200);
+      delay(300);
       go_stop();
-      go_turn(20);
+      go_turn(30);
       go_forward(f_v);
     }else if(dis(LEFT)<=5){
     /*如果太靠近牆壁*/
     /*左後退*/
       go_right_moto(-75);
       go_left_moto(-90);
-      delay(200);
+      delay(300);
       go_stop();
-      go_turn(-20);
+      go_turn(-30);
       go_forward(f_v);
     /****************判斷車子是否太靠近牆壁****************/
     }else if(distance[RIGHT] < 10){
