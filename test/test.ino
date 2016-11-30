@@ -343,8 +343,24 @@ void go_forward(){
       return;
     }
     float dis_diff = distance[RIGHT] - distance[LEFT];
+    if(dis[RIGHT]<=5){
+    /*如果太靠近牆壁*/
+    /*左後退*/
+      go_right_moto(-90);
+      go_left_moto(-75);
+      go_stop();
+      go_turn(20);
+      go_forward(f_v);
+    }else if(dis[LEFT]<=5){
+    /*如果太靠近牆壁*/
+    /*左後退*/
+      go_right_moto(-75);
+      go_left_moto(-90);
+      go_stop();
+      go_turn(-20);
+      go_forward(f_v);
     /****************判斷車子是否太靠近牆壁****************/
-    if(distance[RIGHT] < 10){
+    }else if(distance[RIGHT] < 10){
       go_left_moto(f_v - 2);
       go_right_moto(f_v + 2);
       delay(50);
