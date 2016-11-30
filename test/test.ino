@@ -279,9 +279,11 @@ void step_left(){
 void step_front_right(){
   /*由優先度判斷要前進還是右轉*/
   if(cost_front()<cost_right()){
-    go_forward(f_v);
-    delay(650);
     /*前<右，前進*/
+    go_forward(f_v);
+    while(now_state != STATE_FRONT ){
+      update_detect_state(); //更新狀態
+    }
   }else{
     /*前>=右，右轉*/
     /*旋轉順時鐘九十度*/
@@ -307,9 +309,12 @@ void step_front_left(){
   if(cost_front()<cost_left()){
     /*前<左，前進*/
     go_forward(f_v);
-    delay(650);
+    while(now_state != STATE_FRONT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
   }else{
-    /*前>=左，左轉*/
+    /*前>=左邊，左轉轉*/
     /*旋轉逆時鐘九十度*/
     /*此時的狀態應該要是STATE_FRONT_RIGHT_LEFT 由此判定是否轉對*/
     go_turn_nonstop(1);
@@ -604,7 +609,7 @@ void go_stop(){
   detect_block_id = -1;
   go_forward_id = -1;
   go_forward(0);
-  delay(80);
+  delay(10);
 }
 
 void go_left_moto(int v){
@@ -814,8 +819,8 @@ void detect_block(){
     /*重置秒數距離*/
     Serial.print("diff_t");
     Serial.println(diff_t);
-    go_stop();
-    delay(2000);
+    // go_stop();
+    // delay(2000);
     /*重置state_change_count，使下一次偵測能夠再度進到next_step()*/
     state_change_count = 0;
     start_f_time = millis();  
