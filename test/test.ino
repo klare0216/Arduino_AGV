@@ -67,7 +67,7 @@ StackArray <int> path_history;   // 紀錄路徑
 /*---------------function 宣告-----------------*/
 void car_loop();
 void writeToSerial();               // debug
-void next_step();                   // 根據next_state，讓自走車執行下一步動作
+void next_step(bool update_map_flag=1);                   // 根據next_state，讓自走車執行下一步動作
 void step_front();                  // case STATE_FRONT's step
 void step_right();
 void step_left();
@@ -94,7 +94,7 @@ void update_nextstate();            // 更新下一次狀態
 void update_nowstate();             // 更新現在狀態
 void update_nowstate_nonstop();     // 更新狀態，當nowstate改變的時候不會停下
  // 更新車子現況資料
-void update_status(int right_barrier_dis = 25,int front_barrier_dis = 25,int left_barrier_dis = 23);
+void update_status(int right_barrier_dis = 25,int front_barrier_dis = 23,int left_barrier_dis = 25);
 void detect_block();                // 偵測是否走了一格
 float dis(int sensor);              // 回傳sensor測到的距離
 void debug();
@@ -179,13 +179,13 @@ void writeToSerial(){
   Serial.println("");
 }
 
-void next_step(){
+void next_step(bool update_map_flag=1){
   Serial.println("[next_step]");
   /*停掉偵測格子*/
-  timer.stop(detect_block_id);
+  if(detect_block_id != -1) timer.stop(detect_block_id);
   detect_block_id = -1;
   /*更新地圖 先+1舊的位置，再改成新的位置*/
-  update_mapp();
+  if(update_map_flag) update_mapp();
   switch(now_state){
     case STATE_FRONT:
       step_front();
@@ -229,7 +229,7 @@ void step_front(){
 }
 
 void step_right(){
-  int acc = 15;
+  int acc = 10;
   /* 前進到剩下acc */
   while(dis(FRONT) > acc){
     go_forward(f_v);
@@ -253,7 +253,7 @@ void step_right(){
 }
 
 void step_left(){
-  int acc = 15;
+  int acc = 10;
   /* 前進到剩下acc */
   while(dis(FRONT) > acc){
     go_forward(f_v);
@@ -373,12 +373,26 @@ void step_right_left(){
 }
 
 void step_dead(){
+  /*死路判斷第二次*/
   /*停在牆壁前面*/
-  int acc = 15;
+  int acc = 10;
+  go_forward(f_v);
   while(dis(FRONT) > acc){
-    go_forward(f_v);
+    /*重新檢視是否為死路*/
+    
+    /*確定仍為死路*/
+    
+
   }
   go_stop();
+  state_change_count = 0;
+  while(state_change_count <= 5) update_detect_state();
+  if(now_state!=STATE_DEAD){
+  /*不是死路改為正確路徑*/
+    next_step(false);
+    return;
+  }
+
   /*判斷哪裡比較寬就往哪轉一百八十度*/
   update_dis();
   go_turn_nonstop((distance[LEFT]>distance[RIGHT])?1:-1);
@@ -660,7 +674,7 @@ void update_mapp(){
 
 void update_detect_state(){
   update_dis();
-  update_status(30,35,30);
+  update_status(28,35,28);
   update_nextstate();
   update_nowstate_nonstop();
 }
@@ -721,7 +735,7 @@ void update_nowstate_nonstop(){
   now_state = next_state;
 }
 
-void update_status(int right_barrier_dis = 25,int front_barrier_dis = 25,int left_barrier_dis = 23){
+void update_status(int right_barrier_dis = 25,int front_barrier_dis = 23,int left_barrier_dis = 25){
   s_dis dis[5] = {0,0,0,0,0};
   s_dis change[5];
   int const acc = 30;
