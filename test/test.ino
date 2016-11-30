@@ -93,7 +93,8 @@ void update_dis();                  // 更新距離
 void update_nextstate();            // 更新下一次狀態
 void update_nowstate();             // 更新現在狀態
 void update_nowstate_nonstop();     // 更新狀態，當nowstate改變的時候不會停下
-void update_status();               // 更新車子現況資料
+ // 更新車子現況資料
+void update_status(int right_barrier_dis = 25,int front_barrier_dis = 25,int left_barrier_dis = 23);
 void detect_block();                // 偵測是否走了一格
 float dis(int sensor);              // 回傳sensor測到的距離
 void debug();
@@ -243,7 +244,10 @@ void step_right(){
   go_stop();
   /*前進30cm*/
   go_forward(f_v);
-  delay(650);
+  while(now_state != STATE_FRONT ){
+    update_detect_state(); //更新狀態
+  }
+  go_stop();  
   /*更新turn*/
   turn--;
 }
@@ -264,7 +268,10 @@ void step_left(){
   go_stop();
   /*前進30cm*/
   go_forward(f_v);
-  delay(650);
+  while(now_state != STATE_FRONT ){
+    update_detect_state(); //更新狀態
+  }
+  go_stop();
   /*更新turn*/
   turn++;  
 }
@@ -286,7 +293,10 @@ void step_front_right(){
     go_stop();
     /*前進30cm*/
     go_forward(f_v);
-    delay(650);
+    while(now_state != STATE_FRONT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
     /*更新turn*/
     turn--;
   }
@@ -336,7 +346,10 @@ void step_right_left(){
     go_stop();
     /*前進30cm*/
     go_forward(f_v);
-    delay(650);
+    while(now_state != STATE_FRONT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
     /*更新turn*/
     turn--;
   }else{
@@ -350,7 +363,10 @@ void step_right_left(){
     go_stop();
     /*前進30cm*/
     go_forward(f_v);
-    delay(650);
+    while(now_state != STATE_FRONT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
     /*更新turn*/
     turn++;
   }
@@ -363,9 +379,10 @@ void step_dead(){
     go_forward(f_v);
   }
   go_stop();
-  /*旋轉逆時鐘一百八十度*/
+  /*判斷哪裡比較寬就往哪轉一百八十度*/
+  update_dis();
+  go_turn_nonstop((distance[LEFT]>distance[RIGHT])?1:-1);
   /*此時的狀態應該要是STATE_FRONT 由此判定是否轉對*/
-  go_turn_nonstop(1);
   while(now_state != STATE_FRONT ){
     update_detect_state(); //更新狀態
   }
@@ -605,8 +622,6 @@ void go_right_moto(int v){
 }
 
 void update_mapp(){
-
-
   /*走過的地方加一*/
   mapp[now_row][now_col]++;
   /*使turn為正*/
@@ -645,7 +660,7 @@ void update_mapp(){
 
 void update_detect_state(){
   update_dis();
-  update_status();
+  update_status(30,35,30);
   update_nextstate();
   update_nowstate_nonstop();
 }
@@ -706,12 +721,9 @@ void update_nowstate_nonstop(){
   now_state = next_state;
 }
 
-void update_status(){
+void update_status(int right_barrier_dis = 25,int front_barrier_dis = 25,int left_barrier_dis = 23){
   s_dis dis[5] = {0,0,0,0,0};
   s_dis change[5];
-  const float right_barrier_dis = 25;
-  const float front_barrier_dis = 25;
-  const float left_barrier_dis = 25;
   int const acc = 30;
   /************* 對照資料 **************/
   // Serial.println(distance_data.count());

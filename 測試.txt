@@ -32,15 +32,15 @@ n = 1;
 W = row;
 前進:W+n
 後退:W-n
-右轉:W=(W==row)?col:row; turn++; 
-左轉:W=(W==row)?col:row; turn--;
+右轉:W=(W==row)?col:row; turn--; 
+左轉:W=(W==row)?col:row; turn++;
 
 while(turn<0) turn+=4;
 turn%4	| 前進狀態
-0		| row++
-1		| col++
-2		| row--
-3		| col--
+0		| col++
+1		| row--
+2		| col--
+3		| row++
 ----------------
 stack
 (進入next_step的時候，push進去)
