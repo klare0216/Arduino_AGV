@@ -213,9 +213,19 @@ void step_right(){
   go_stop();
   /*旋轉順時鐘九十度*/
   /*此時的狀態應該要是STATE_FRONT_RIGHT 由此判定是否轉對*/
-  go_turn_nonstop(-1);
-  while(now_state != STATE_FRONT_RIGHT ){
-    update_detect_state(); //更新狀態
+  while(dis(LEFT)>30||dis(FRONT)<30||dis(RIGHT)<30){
+    go_turn(-50); //更新狀態
+    if(dis(FRONT)>=30){
+      go_forward(f_v);
+      delay(300);
+      go_stop();
+      if(dis(FRONT)<30){
+        go_forward(-f_v);
+        delay(300);
+        go_stop();
+        continue;
+      }
+    }
   }
   go_stop();
   /*前進30cm*/
@@ -251,18 +261,17 @@ void step_front_right(){
   /*先右轉*/
   /*旋轉順時鐘九十度*/
   go_turn(-50);
-  while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30){
+  bool front_is_empty = true;
+  while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
     go_turn(-30);
-    if(dis(FRONT)>30){
+    if(dis(FRONT)>=30){
       go_forward(f_v);
       delay(300);
       go_stop();
-      if(dis(FRONT)<30){
-        go_forward(-f_v);
-        delay(300);
-        go_stop();
-        continue;
-      }
+      front_is_empty = (dis(FRONT)<30)?false:true;  
+      go_forward(-f_v);
+      delay(300);
+      go_stop();
     }
   }
   /*前進*/
@@ -276,8 +285,19 @@ void step_front_left(){
   go_stop();
   /*先左轉*/
   /*旋轉逆時鐘九十度*/
-  while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30){
-    go_turn(50);
+  go_turn(50);
+  bool front_is_empty = true;
+  while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
+    go_turn(30);
+    if(dis(FRONT)>=30){
+      go_forward(f_v);
+      delay(300);
+      go_stop();
+      front_is_empty = (dis(FRONT)<30)?false:true;  
+      go_forward(-f_v);
+      delay(300);
+      go_stop();
+    }
   }
   /*前進*/
   go_forward(f_v);
@@ -316,12 +336,12 @@ void step_dead(){
   if(dis(RIGHT)>dis(LEFT)){
     /*順時針轉*/
     while(dis(LEFT)>28||dis(FRONT)<30||dis(RIGHT)>28){
-      go_turn(-60);
+      go_turn(-70);
     }
   }else{
     /*逆時針轉*/
     while(dis(LEFT)>28||dis(FRONT)<30||dis(RIGHT)>28){
-      go_turn(60);
+      go_turn(70);
     }
   }
   go_stop();
