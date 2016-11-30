@@ -94,7 +94,7 @@ void update_nextstate();            // 更新下一次狀態
 void update_nowstate();             // 更新現在狀態
 void update_nowstate_nonstop();     // 更新狀態，當nowstate改變的時候不會停下
  // 更新車子現況資料
-void update_status(int right_barrier_dis = 25,int front_barrier_dis = 25,int left_barrier_dis = 23);
+void update_status(int right_barrier_dis = 28, int front_barrier_dis = 28,int left_barrier_dis = 28);
 void detect_block();                // 偵測是否走了一格
 float dis(int sensor);              // 回傳sensor測到的距離
 void debug();
@@ -115,13 +115,11 @@ void setup(){
   // 初始化
   // now_state = STATE_FRONT;
   timer.every(1,car_loop);
-  timer.every(1,writeToSerial);
-  // timer.after(1000,debug);
+  // timer.every(1,writeToSerial);
+  // timer.every(3000,debug);
 }
 void debug(){
-  go_forward(f_v);
-  delay(1000);
-  go_stop();
+
 }
 
 void draw_mpa(){
@@ -209,7 +207,8 @@ void next_step(){
       step_dead();
       break;
     default:
-      go_stop();
+      /*往後走直到有牆?*/
+      go_forward(-f_v);
   }
 }
 
@@ -288,11 +287,13 @@ void step_front_right(){
     /*前>=右，右轉*/
     /*旋轉順時鐘九十度*/
     /*此時的狀態應該要是STATE_FRONT_RIGHT 由此判定是否轉對*/
-    go_turn_nonstop(-1);
-    while(now_state != STATE_FRONT_RIGHT_LEFT ){
+    
+    do{
+      go_turn(-30);
       update_detect_state(); //更新狀態
-    }
+    }while(now_state != STATE_FRONT_RIGHT_LEFT);
     go_stop();
+
     /*前進30cm*/
     go_forward(f_v);
     while(now_state != STATE_FRONT ){
@@ -314,13 +315,13 @@ void step_front_left(){
     }
     go_stop();
   }else{
-    /*前>=左邊，左轉轉*/
+    /*前>=左邊，左轉*/
     /*旋轉逆時鐘九十度*/
     /*此時的狀態應該要是STATE_FRONT_RIGHT_LEFT 由此判定是否轉對*/
     go_turn_nonstop(1);
-    while(now_state != STATE_FRONT_RIGHT_LEFT ){
+    do{
       update_detect_state(); //更新狀態
-    }
+    }while(now_state != STATE_FRONT_RIGHT_LEFT );
     go_stop();
     /*前進30cm*/
     go_forward(f_v);
@@ -595,7 +596,7 @@ void go_stop(){
   detect_block_id = -1;
   go_forward_id = -1;
   go_forward(0);
-  delay(10);
+  delay(80);
 }
 
 void go_left_moto(int v){
@@ -665,7 +666,9 @@ void update_mapp(){
 
 void update_detect_state(){
   update_dis();
-  update_status(30,35,30);
+  no_barrier[FRONT] = (distance[FRONT] > 35)?true:false;
+  no_barrier[RIGHT] = (distance[RIGHT] > 35)?true:false;
+  no_barrier[LEFT] = (distance[LEFT] > 35)?true:false;
   update_nextstate();
   update_nowstate_nonstop();
 }
@@ -726,7 +729,7 @@ void update_nowstate_nonstop(){
   now_state = next_state;
 }
 
-void update_status(int right_barrier_dis = 25,int front_barrier_dis = 25,int left_barrier_dis = 23){
+void update_status(int right_barrier_dis = 28,int front_barrier_dis = 28,int left_barrier_dis = 28){
   s_dis dis[5] = {0,0,0,0,0};
   s_dis change[5];
   int const acc = 30;
@@ -800,13 +803,13 @@ void detect_block(){
   float acc = 1;
   float diff = (start_f_dis - distance[FRONT])-32;
   float diff_t = millis() - start_f_time;
-  if(diff_t >= 1200){
+  if(diff_t >= 1300){
     /*大約走了一格*/
     /*重置秒數距離*/
     Serial.print("diff_t");
     Serial.println(diff_t);
-    // go_stop();
-    // delay(2000);
+    go_stop();
+    delay(2000);
     /*重置state_change_count，使下一次偵測能夠再度進到next_step()*/
     state_change_count = 0;
     start_f_time = millis();  
