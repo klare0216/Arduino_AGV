@@ -250,7 +250,21 @@ void step_front_right(){
   go_stop();
   /*先右轉*/
   /*旋轉順時鐘九十度*/
-  go_turn(-90);
+  go_turn(-50);
+  while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30){
+    go_turn(-30);
+    if(dis(FRONT)>30){
+      go_forward(f_v);
+      delay(300);
+      go_stop();
+      if(dis(FRONT)<30){
+        go_forward(-f_v);
+        delay(300);
+        go_stop();
+        continue;
+      }
+    }
+  }
   /*前進*/
   go_forward(f_v);
   delay(960);
@@ -262,9 +276,11 @@ void step_front_left(){
   go_stop();
   /*先左轉*/
   /*旋轉逆時鐘九十度*/
-  go_turn(90);
+  while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30){
+    go_turn(50);
+  }
   /*前進*/
- go_forward(f_v);
+  go_forward(f_v);
   delay(960);
 }
 
@@ -278,7 +294,11 @@ void step_right_left(){
   go_forward(f_v);
   delay(200);
   /*旋轉順時鐘九十度*/
-  go_turn(-90);
+  if(dead_flag){
+    go_turn(90);
+  }else{
+   go_turn(-90); 
+  }
   /*前進*/
   go_forward(f_v);
   delay(960);
@@ -295,10 +315,14 @@ void step_dead(){
   /*旋轉逆時鐘一百八十度*/
   if(dis(RIGHT)>dis(LEFT)){
     /*順時針轉*/
-    go_turn(-90);
+    while(dis(LEFT)>28||dis(FRONT)<30||dis(RIGHT)>28){
+      go_turn(-60);
+    }
   }else{
     /*逆時針轉*/
-    go_turn(90);
+    while(dis(LEFT)>28||dis(FRONT)<30||dis(RIGHT)>28){
+      go_turn(60);
+    }
   }
   go_stop();
 
