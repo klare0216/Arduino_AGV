@@ -47,6 +47,7 @@ int detect_block_id = -1;
 int start_f_dis = 0;
 int diff_f_dis = 0;
 int count_block = 0;
+bool dead_flag = false;         // 是否走死路
 /*----------------地圖資訊---------------------*/
 // int mapp[11][11] = {
 //   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -290,17 +291,18 @@ void step_dead(){
     go_forward(f_v);
   }
   go_stop();
+
   /*旋轉逆時鐘一百八十度*/
-  /*此時的狀態應該要是STATE_FRONT 由此判定是否轉對*/
-  go_turn_nonstop(1);
-  while(now_state != STATE_FRONT ){
-    update_detect_state(); //更新狀態
+  if(dis(RIGHT)>dis(LEFT)){
+    /*順時針轉*/
+    go_turn(-90);
+  }else{
+    /*逆時針轉*/
+    go_turn(90);
   }
   go_stop();
-  /*倒退回剛剛的岔路*/
-  /*如果上一個岔路是左轉則後退右轉; 是右轉則後退左轉90度*/
-  /*直線前進30cm*/
 
+  dead_flag = true;
 }
 
 void go_turn(float degree){
@@ -343,19 +345,21 @@ void go_forward(){
       return;
     }
     float dis_diff = distance[RIGHT] - distance[LEFT];
-    if(dis[RIGHT]<=5){
+    if(dis(RIGHT)<=5){
     /*如果太靠近牆壁*/
     /*左後退*/
       go_right_moto(-90);
       go_left_moto(-75);
+      delay(200);
       go_stop();
       go_turn(20);
       go_forward(f_v);
-    }else if(dis[LEFT]<=5){
+    }else if(dis(LEFT)<=5){
     /*如果太靠近牆壁*/
     /*左後退*/
       go_right_moto(-75);
       go_left_moto(-90);
+      delay(200);
       go_stop();
       go_turn(-20);
       go_forward(f_v);
