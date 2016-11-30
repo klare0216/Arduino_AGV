@@ -45,24 +45,24 @@ int state_change_count = 0;      // 當此count == state_change_count_const ,cal
 int go_forward_id = -1;
 int detect_block_id = -1;
 int start_f_dis = 0;
-int diff_f_dis = 0;
 int count_block = 0;
+long long int start_f_time = 0;
 /*----------------地圖資訊---------------------*/
-int now_col = 5, now_row = 5;
-int turn_count = 0;
+int now_col = 0, now_row = 5;
+int turn = 0;
 int mapp[11][11] = {
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  (0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-}
+  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+};
 StackArray <int> path_history;   // 紀錄路徑
 /*---------------function 宣告-----------------*/
 void car_loop();
@@ -97,6 +97,7 @@ void update_status();               // 更新車子現況資料
 void detect_block();                // 偵測是否走了一格
 float dis(int sensor);              // 回傳sensor測到的距離
 void debug();
+void draw_mpa();
 
 void setup(){
   pinMode(Moto1, OUTPUT);
@@ -114,11 +115,23 @@ void setup(){
   // now_state = STATE_FRONT;
   timer.every(1,car_loop);
   timer.every(1,writeToSerial);
-  // timer.every(1000,debug);
+  // timer.after(1000,debug);
+}
+void debug(){
+  go_forward(f_v);
+  delay(1000);
+  go_stop();
 }
 
-void debug(){
- go_turn(90);
+void draw_mpa(){
+  for(int i=0;i<11;i++){
+    Serial.print("\n");
+    for(int j=0;j<11;j++){
+      Serial.print(mapp[i][j]);
+      Serial.print(" ");
+    }
+  }
+  Serial.print("\n");
 }
 
 void loop(){
@@ -166,7 +179,12 @@ void writeToSerial(){
 }
 
 void next_step(){
-
+  Serial.println("[next_step]");
+  /*停掉偵測格子*/
+  timer.stop(detect_block_id);
+  detect_block_id = -1;
+  /*更新地圖 先+1舊的位置，再改成新的位置*/
+  update_mapp();
   switch(now_state){
     case STATE_FRONT:
       step_front();
@@ -198,8 +216,7 @@ void step_front(){
   /*紀錄開始距離*/
   update_dis();
   start_f_dis = distance[FRONT]; 
-  Serial.print("s_f: ");
-  Serial.println(start_f_dis);
+  start_f_time = millis();
   /*持續呼叫go_forward*/
   if(go_forward_id == -1){
     go_forward_id = timer.every(1,go_forward);  
@@ -227,7 +244,8 @@ void step_right(){
   /*前進30cm*/
   go_forward(f_v);
   delay(650);
-  // go_stop();
+  /*更新turn*/
+  turn--;
 }
 
 void step_left(){
@@ -247,47 +265,95 @@ void step_left(){
   /*前進30cm*/
   go_forward(f_v);
   delay(650);
-  go_stop();
+  /*更新turn*/
+  turn++;  
 }
 
 void step_front_right(){
-  go_forward(f_v);
-  delay(200);
-  go_stop();
-  /*先右轉*/
-  /*旋轉順時鐘九十度*/
-  go_turn(-90);
-  /*前進*/
-  go_forward(f_v);
-  delay(960);
+  /*由優先度判斷要前進還是右轉*/
+  if(cost_front()<cost_right()){
+    go_forward(f_v);
+    delay(650);
+    /*前<右，前進*/
+  }else{
+    /*前>=右，右轉*/
+    /*旋轉順時鐘九十度*/
+    /*此時的狀態應該要是STATE_FRONT_RIGHT 由此判定是否轉對*/
+    go_turn_nonstop(-1);
+    while(now_state != STATE_FRONT_RIGHT_LEFT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
+    /*前進30cm*/
+    go_forward(f_v);
+    delay(650);
+    /*更新turn*/
+    turn--;
+  }
 }
 
 void step_front_left(){
-  go_forward(f_v);
-  delay(200);
-  go_stop();
-  /*先左轉*/
-  /*旋轉逆時鐘九十度*/
-  go_turn(90);
-  /*前進*/
- go_forward(f_v);
-  delay(960);
+ /*由優先度判斷要前進還是左轉*/
+  if(cost_front()<cost_left()){
+    /*前<左，前進*/
+    go_forward(f_v);
+    delay(650);
+  }else{
+    /*前>=左，左轉*/
+    /*旋轉逆時鐘九十度*/
+    /*此時的狀態應該要是STATE_FRONT_RIGHT_LEFT 由此判定是否轉對*/
+    go_turn_nonstop(1);
+    while(now_state != STATE_FRONT_RIGHT_LEFT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
+    /*前進30cm*/
+    go_forward(f_v);
+    while(now_state != STATE_FRONT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
+    /*更新turn*/
+    turn++;
+  }
 }
 
 void step_right_left(){
-    int acc = 15;
-    /* 前進到剩下acc */
+  int acc = 15;
+  /* 前進到剩下acc */
   while(dis(FRONT) > acc){
     go_forward(f_v);
   }
   go_stop();
-  go_forward(f_v);
-  delay(200);
-  /*旋轉順時鐘九十度*/
-  go_turn(-90);
-  /*前進*/
-  go_forward(f_v);
-  delay(960);
+  if(cost_right()<cost_left()){
+    /*右邊<左邊，右轉*/
+    /*旋轉順時鐘九十度*/
+    /*此時的狀態應該要是STATE_FRONT_RIGHT 由此判定是否轉對*/
+    go_turn_nonstop(-1);
+    while(now_state != STATE_FRONT_RIGHT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
+    /*前進30cm*/
+    go_forward(f_v);
+    delay(650);
+    /*更新turn*/
+    turn--;
+  }else{
+    /*右邊>=左邊，左轉*/
+    /*旋轉逆時鐘九十度*/
+    /*此時的狀態應該要是STATE_FRONT_LEFT 由此判定是否轉對*/
+    go_turn_nonstop(1);
+    while(now_state != STATE_FRONT_LEFT ){
+      update_detect_state(); //更新狀態
+    }
+    go_stop();
+    /*前進30cm*/
+    go_forward(f_v);
+    delay(650);
+    /*更新turn*/
+    turn++;
+  }
 }
 
 void step_dead(){
@@ -304,10 +370,7 @@ void step_dead(){
     update_detect_state(); //更新狀態
   }
   go_stop();
-  /*倒退回剛剛的岔路*/
-  /*如果上一個岔路是左轉則後退右轉; 是右轉則後退左轉90度*/
-  /*直線前進30cm*/
-
+  turn+=2;
 }
 
 int cost_front(){
@@ -507,16 +570,9 @@ void go_backward(int v){
 
 void go_stop(){
   if(go_forward_id != -1) timer.stop(go_forward_id);
-  if(detect_block_id != -1) timer.stop(detect_block_id);
   detect_block_id = -1;
   go_forward_id = -1;
   go_forward(0);
-  /*紀錄結束點*/
-  // update_dis();
-  // if(start_f_dis!=0){
-  //   end_f_dis = start_f_dis-distance[front];
-  //   start_f_dis = 0;
-  // }
   delay(80);
 }
 
@@ -549,6 +605,41 @@ void go_right_moto(int v){
 }
 
 void update_mapp(){
+
+
+  /*走過的地方加一*/
+  mapp[now_row][now_col]++;
+  /*使turn為正*/
+  while(turn < 0)
+      turn+=4;
+  /*轉了幾次九十度*/
+  turn%=4;
+  /*更新成新的位置*/
+  draw_mpa();
+  Serial.print(" turn: ");
+  Serial.print(turn);
+  Serial.print("\n");
+  switch(turn){
+      case 0:
+          now_col++;
+          break;
+      case 1:
+          now_row--;
+          break;
+      case 2:
+          now_col--;
+          break;
+      case 3:
+          now_row++;
+          break;
+  }
+
+  Serial.print(" now_row: ");
+  Serial.print(now_row);
+  Serial.print("\n");
+  Serial.print(" now_col: ");
+  Serial.print(now_col);
+  Serial.print("\n"); 
 
 }
 
@@ -631,7 +722,7 @@ void update_status(){
     /***************處理中間與其他的值的差****************/
     /*left*/
     int count_diff = 0; // 數與中間差異太大數量
-    Serial.print("dis.left: ");
+    // Serial.print("dis.left: ");
     for(int i = 0;i<5;i++){
       // Serial.print(change[i].left);
       // Serial.print(" ");
@@ -689,21 +780,32 @@ void update_status(){
 
 void detect_block(){
   update_dis();
-  float acc = 2;
-  float diff = (start_f_dis - distance[FRONT])-30;
-  if(diff < acc && diff > -acc){
-    Serial.print("one block: ");
-    Serial.println(diff);
+  float acc = 1;
+  float diff = (start_f_dis - distance[FRONT])-32;
+  float diff_t = millis() - start_f_time;
+  if(diff_t >= 1200){
     /*大約走了一格*/
-    count_block++;
-    /*重置前方距離*/
-    start_f_dis = distance[FRONT];
+    /*重置秒數距離*/
+    Serial.print("diff_t");
+    Serial.println(diff_t);
     go_stop();
     delay(2000);
     /*重置state_change_count，使下一次偵測能夠再度進到next_step()*/
     state_change_count = 0;
-    
+    start_f_time = millis();  
   }
+  // if(diff < acc && diff > -acc){
+  //   Serial.print("one block: ");
+  //   Serial.println(diff);
+  //   /*大約走了一格*/
+  //   count_block++;
+  //   /*重置前方距離*/
+  //   start_f_dis = distance[FRONT];
+  //   go_stop();
+  //   delay(2000);
+  //   /*重置state_change_count，使下一次偵測能夠再度進到next_step()*/
+  //   state_change_count = 0;  
+  // }
 }
 
 float dis(int sensor){
