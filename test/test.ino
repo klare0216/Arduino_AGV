@@ -278,11 +278,9 @@ void step_left(){
 void step_front_right(){
   /*由優先度判斷要前進還是右轉*/
   if(cost_front()<cost_right()){
-    /*前<右，前進*/
     go_forward(f_v);
-    while(now_state != STATE_FRONT ){
-      update_detect_state(); //更新狀態
-    }
+    delay(650);
+    /*前<右，前進*/
   }else{
     /*前>=右，右轉*/
     /*旋轉順時鐘九十度*/
@@ -310,12 +308,13 @@ void step_front_left(){
   if(cost_front()<cost_left()){
     /*前<左，前進*/
     go_forward(f_v);
-    while(now_state != STATE_FRONT ){
-      update_detect_state(); //更新狀態
-    }
-    go_stop();
+    delay(650);
   }else{
+<<<<<<< HEAD
     /*前>=左邊，左轉*/
+=======
+    /*前>=左，左轉*/
+>>>>>>> parent of 9463249... 減少delay
     /*旋轉逆時鐘九十度*/
     /*此時的狀態應該要是STATE_FRONT_RIGHT_LEFT 由此判定是否轉對*/
     go_turn_nonstop(1);
