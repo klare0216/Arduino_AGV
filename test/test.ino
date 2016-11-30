@@ -48,6 +48,7 @@ int start_f_dis = 0;
 int diff_f_dis = 0;
 int count_block = 0;
 bool dead_flag = false;         // 是否走死路
+int count_left = 0;
 /*----------------地圖資訊---------------------*/
 // int mapp[11][11] = {
 //   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -242,16 +243,26 @@ void step_left(){
   }
   go_stop();
   /*旋轉逆時鐘九十度*/
-  /*此時的狀態應該要是STATE_FRONT_LEFT 由此判定是否轉對*/
-  go_turn_nonstop(1);
-  while(now_state != STATE_FRONT_LEFT ){
-    update_detect_state(); //更新狀態
+  go_turn(50);
+  bool front_is_empty = true;
+  while(dis(LEFT)>30||dis(FRONT)>30||dis(RIGHT)<30){
+    go_turn(30);
+    if(dis(FRONT)>=30){
+      go_forward(f_v);
+      delay(300);
+      go_stop();
+      front_is_empty = (dis(FRONT)<30)?false:true;  
+      go_forward(-f_v);
+      delay(300);
+      go_stop();
+    }
   }
-  go_stop();
+  count_left++;
   /*前進30cm*/
   go_forward(f_v);
   delay(650);
   go_stop();
+ 
 }
 
 void step_front_right(){
@@ -299,13 +310,17 @@ void step_front_left(){
       go_stop();
     }
   }
+  count_left++;
   /*前進*/
   go_forward(f_v);
   delay(960);
 }
 
 void step_right_left(){
-    int acc = 15;
+  if(count_left>=4){
+    dead_flag = true;
+  }
+  int acc = 15;
     /* 前進到剩下acc */
   while(dis(FRONT) > acc){
     go_forward(f_v);
@@ -314,10 +329,40 @@ void step_right_left(){
   go_forward(f_v);
   delay(200);
   /*旋轉順時鐘九十度*/
-  if(dead_flag){
-    go_turn(90);
+  if(!dead_flag){
+    /*左轉*/
+    go_turn(50);
+    bool front_is_empty = true;
+    while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
+      go_turn(30);
+      if(dis(FRONT)>=30){
+        go_forward(f_v);
+        delay(300);
+        go_stop();
+        front_is_empty = (dis(FRONT)<30)?false:true;  
+        go_forward(-f_v);
+        delay(300);
+        go_stop();
+      }
+    }
+    count_left++;
   }else{
-   go_turn(-90); 
+   /*右轉*/
+    go_turn(-50);
+    bool front_is_empty = true;
+    while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
+      go_turn(-30);
+      if(dis(FRONT)>=30){
+        go_forward(f_v);
+        delay(300);
+        go_stop();
+        front_is_empty = (dis(FRONT)<30)?false:true;  
+        go_forward(-f_v);
+        delay(300);
+        go_stop();
+      }
+      dead_flag = false;
+    } 
   }
   /*前進*/
   go_forward(f_v);
