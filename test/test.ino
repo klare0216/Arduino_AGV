@@ -21,6 +21,7 @@ typedef struct RFL_dis{
 /*--------------可以使用的數值------------------*/
 const int f_v = 80;                 // 前進速度
 const int v_max = 87;              // 最大速度
+const int f_delay =700;
 const int state_change_count_const = 5;
 # define RIGHT 1
 # define FRONT 2
@@ -89,6 +90,7 @@ void update_nextstate();            // 更新下一次狀態
 void update_nowstate();             // 更新現在狀態
 void update_nowstate_nonstop();     // 更新狀態，當nowstate改變的時候不會停下
 void update_status();               // 更新車子現況資料
+void detect_front();                // 與前方距離xcm才停下來
 void detect_block();                // 偵測是否走了一格
 float dis(int sensor);              // 回傳sensor測到的距離
 void debug();
@@ -215,7 +217,7 @@ void step_right(){
   /*旋轉順時鐘九十度*/
   /*此時的狀態應該要是STATE_FRONT_RIGHT 由此判定是否轉對*/
   while(dis(LEFT)>30||dis(FRONT)<30||dis(RIGHT)<30){
-    go_turn(-50); //更新狀態
+    go_turn(-65); //更新狀態
     if(dis(FRONT)>=30){
       go_forward(f_v);
       delay(300);
@@ -231,7 +233,7 @@ void step_right(){
   go_stop();
   /*前進30cm*/
   go_forward(f_v);
-  delay(650);
+  delay(f_delay);
   // go_stop();
 }
 
@@ -243,9 +245,10 @@ void step_left(){
   }
   go_stop();
   /*旋轉逆時鐘九十度*/
-  go_turn(50);
+  go_turn(65);
   bool front_is_empty = true;
-  while(dis(LEFT)>30||dis(FRONT)>30||dis(RIGHT)<30){
+  while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)>30||!front_is_empty){
+    detect_front();
     go_turn(30);
     if(dis(FRONT)>=30){
       go_forward(f_v);
@@ -260,9 +263,7 @@ void step_left(){
   count_left++;
   /*前進30cm*/
   go_forward(f_v);
-  delay(650);
-  go_stop();
- 
+  delay(f_delay); 
 }
 
 void step_front_right(){
@@ -271,11 +272,13 @@ void step_front_right(){
   go_stop();
   /*先右轉*/
   /*旋轉順時鐘九十度*/
-  go_turn(-50);
   bool front_is_empty = true;
+  go_turn(-65);
   while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
-    go_turn(-30);
+    detect_front();
+    go_turn(-25);
     if(dis(FRONT)>=30){
+      go_turn(-20);
       go_forward(f_v);
       delay(300);
       go_stop();
@@ -287,7 +290,7 @@ void step_front_right(){
   }
   /*前進*/
   go_forward(f_v);
-  delay(960);
+  delay(f_delay);
 }
 
 void step_front_left(){
@@ -296,11 +299,12 @@ void step_front_left(){
   go_stop();
   /*先左轉*/
   /*旋轉逆時鐘九十度*/
-  go_turn(50);
   bool front_is_empty = true;
+  go_turn(65);
   while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
     go_turn(30);
     if(dis(FRONT)>=30){
+      go_turn(20);
       go_forward(f_v);
       delay(300);
       go_stop();
@@ -313,7 +317,7 @@ void step_front_left(){
   count_left++;
   /*前進*/
   go_forward(f_v);
-  delay(960);
+  delay(f_delay);
 }
 
 void step_right_left(){
@@ -331,11 +335,12 @@ void step_right_left(){
   /*旋轉順時鐘九十度*/
   if(!dead_flag){
     /*左轉*/
-    go_turn(50);
     bool front_is_empty = true;
-    while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
+    go_turn(-65);
+    while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)>30||!front_is_empty){
       go_turn(30);
       if(dis(FRONT)>=30){
+        go_turn(20);
         go_forward(f_v);
         delay(300);
         go_stop();
@@ -348,11 +353,12 @@ void step_right_left(){
     count_left++;
   }else{
    /*右轉*/
-    go_turn(-50);
     bool front_is_empty = true;
-    while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
+    go_turn(-65);
+    while(dis(LEFT)>30||dis(FRONT)<30||dis(RIGHT)<30||!front_is_empty){
       go_turn(-30);
       if(dis(FRONT)>=30){
+        go_turn(-20);
         go_forward(f_v);
         delay(300);
         go_stop();
@@ -366,30 +372,57 @@ void step_right_left(){
   }
   /*前進*/
   go_forward(f_v);
-  delay(960);
+  delay(f_delay);
 }
 
 void step_dead(){
   /*停在牆壁前面*/
-  int acc = 15;
+  int acc = 10;
   while(dis(FRONT) > acc){
     go_forward(f_v);
   }
   go_stop();
-
+  update_nowstate_nonstop();
+  if(now_state!=STATE_DEAD) return;
   /*旋轉逆時鐘一百八十度*/
   if(dis(RIGHT)>dis(LEFT)){
     /*順時針轉*/
-    while(dis(LEFT)>28||dis(FRONT)<30||dis(RIGHT)>28){
-      go_turn(-70);
+    bool front_is_empty = true;
+    go_turn(-150);
+    while(dis(LEFT)>28||dis(FRONT)<30||dis(RIGHT)>28||!front_is_empty){
+      detect_front();
+      go_turn(-30);
+      if(dis(FRONT)>=30){
+        go_turn(-20);
+        go_forward(f_v);
+        delay(300);
+        go_stop();
+        front_is_empty = (dis(FRONT)<30)?false:true;  
+        go_forward(-f_v);
+        delay(300);
+        go_stop();
+      }
     }
   }else{
     /*逆時針轉*/
+    bool front_is_empty = true;
+    go_turn(150);
     while(dis(LEFT)>28||dis(FRONT)<30||dis(RIGHT)>28){
-      go_turn(70);
+      go_turn(30);
+      if(dis(FRONT)>=30){
+        go_turn(-20);
+        go_forward(f_v);
+        delay(300);
+        go_stop();
+        front_is_empty = (dis(FRONT)<30)?false:true;  
+        go_forward(-f_v);
+        delay(300);
+        go_stop();
+      }
     }
   }
-  go_stop();
+  go_forward(f_v);
+  delay(f_delay);
 
   dead_flag = true;
 }
@@ -397,14 +430,14 @@ void step_dead(){
 void go_turn(float degree){
   if(degree > 0){
     /*逆時針*/
-    go_left_moto(-80);
-    go_right_moto(80);
+    go_left_moto(-100);
+    go_right_moto(100);
     delay((float)398/90*degree);
     go_stop();
   }else if(degree < 0){
     /*順時針*/
-    go_left_moto(80);
-    go_right_moto(-80);
+    go_left_moto(100);
+    go_right_moto(-100);
     delay((float)393/90*(-degree));
     go_stop();
   }
@@ -434,23 +467,23 @@ void go_forward(){
       return;
     }
     float dis_diff = distance[RIGHT] - distance[LEFT];
-    if(dis(RIGHT)<=5){
+    if(dis(RIGHT)<=7){
     /*如果太靠近牆壁*/
     /*左後退*/
       go_right_moto(-90);
-      go_left_moto(-75);
-      delay(300);
+      go_left_moto(-70);
+      delay(350);
       go_stop();
-      go_turn(30);
+      go_turn(25);
       go_forward(f_v);
-    }else if(dis(LEFT)<=5){
+    }else if(dis(LEFT)<=7){
     /*如果太靠近牆壁*/
     /*左後退*/
-      go_right_moto(-75);
+      go_right_moto(-70);
       go_left_moto(-90);
-      delay(300);
+      delay(350);
       go_stop();
-      go_turn(-30);
+      go_turn(-25);
       go_forward(f_v);
     /****************判斷車子是否太靠近牆壁****************/
     }else if(distance[RIGHT] < 10){
@@ -707,6 +740,12 @@ void update_status(){
     distance_data.push(dis[1]);
     distance_data.push(dis[0]);
   }
+}
+void detect_front(){
+  while(dis(FRONT)<14){
+    go_forward(-f_v);
+  }
+  go_stop();
 }
 
 void detect_block(){
