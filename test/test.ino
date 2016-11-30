@@ -311,7 +311,11 @@ void step_front_left(){
     delay(650);
   }else{
 <<<<<<< HEAD
+<<<<<<< HEAD
     /*前>=左邊，左轉*/
+=======
+    /*前>=左，左轉*/
+>>>>>>> parent of 9463249... 減少delay
 =======
     /*前>=左，左轉*/
 >>>>>>> parent of 9463249... 減少delay
