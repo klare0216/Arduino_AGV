@@ -1,17 +1,35 @@
 #include <Event.h>
 #include <Timer.h>
 #include <StackArray.h>
+#include <BRCClient.h>
+/*--------------wifi message------------------*/
 
-const int Moto1 = 12;
-const int Moto2 = 13;
-const int Moto3 = 10;
-const int Moto4 = 11;
-const int echo_1 = 6;
-const int trig_1 = 9;
-const int echo_2 = 5;
-const int trig_2 = 8;
-const int echo_3 = 4;
-const int trig_3 = 7;
+#if !defined(UNO) && defined(USE_HARDWARE_SERIAL)
+ BRCClient brcClient(&HW_SERIAL);
+#else
+ BRCClient brcClient(UART_RX, UART_TX);
+#endif
+// You have to modify the corresponding parameter
+#define AP_SSID    "AP_SSID"
+#define AP_PASSWD  "AP_PASSWD"
+#define TCP_IP     "TCP_IP"
+#define TCP_PORT   5000
+#define MY_COMM_ID 0x24
+#define PARTNER_COMM_ID 0x20
+/*------------------------------------------*/
+
+const int enable_left = 12;
+const int enable_right = 13;
+const int Moto1 = 5;
+const int Moto2 = 4;
+const int Moto3 = 6;
+const int Moto4 = 7;
+const int echo_1 = 26;
+const int trig_1 = 27;
+const int echo_2 = 24;
+const int trig_2 = 25;
+const int echo_3 = 22;
+const int trig_3 = 23;
 Timer timer;
 typedef struct RFL_dis{
   float right;
@@ -19,9 +37,11 @@ typedef struct RFL_dis{
   float left;
 } s_dis;
 /*--------------可以使用的數值------------------*/
-const int f_v = 80;                 // 前進速度
-const int v_max = 87;              // 最大速度
-const int f_delay =700;
+const bool f_v = true;
+const int f_l_v = 200;                 // 前進速度
+const int f_r_v = 235;
+const int v_max = 120;              // 最大速度
+const int f_delay = 950;
 const int state_change_count_const = 5;
 # define RIGHT 1
 # define FRONT 2
@@ -34,6 +54,8 @@ const int state_change_count_const = 5;
 # define STATE_FRONT_LEFT 5
 # define STATE_RIGHT_LEFT 6
 # define STATE_DEAD 7
+# define UART_RX 10
+# define UART_TX 2
 /*----------------車子現況資料-----------------*/
 int right_wheel_v = 0;              // 右輪速度
 int left_wheel_v = 0;               // 左輪速度
@@ -90,9 +112,11 @@ void update_nextstate();            // 更新下一次狀態
 void update_nowstate();             // 更新現在狀態
 void update_nowstate_nonstop();     // 更新狀態，當nowstate改變的時候不會停下
 void update_status();               // 更新車子現況資料
+void update_message();
 void detect_front();                // 與前方距離xcm才停下來
 void detect_block();                // 偵測是否走了一格
 float dis(int sensor);              // 回傳sensor測到的距離
+void send_message();
 void debug();
 
 void setup(){
@@ -107,15 +131,40 @@ void setup(){
   pinMode (echo_2, INPUT);
   pinMode (trig_3, OUTPUT);
   pinMode (echo_3, INPUT);
+  // 連上基地台
+  while (!Serial)
+    ;
+
+  brcClient.begin(9600);
+  brcClient.beginBRCClient(AP_SSID, AP_PASSWD, TCP_IP, TCP_PORT);
+
+  delay(2000);
+  if (brcClient.registerID(MY_COMM_ID))
+    Serial.println("ID register OK");
+  else {
+    Serial.println("ID register FAIL");
+    brcClient.endBRCClient();
+
+    while (1)
+      ;
   // 初始化
-  // now_state = STATE_FRONT;
-  timer.every(1,car_loop);
-  timer.every(1,writeToSerial);
-  // timer.every(1000,debug);
+  now_state = STATE_FRONT;
+ timer.every(1000,writeToSerial);
+ timer.every(1,car_loop);
+   // timer.every(1000,debug);
 }
 
 void debug(){
- go_turn(90);
+
+  // go_right_moto(235);
+  // go_left_moto(200);
+  Serial.print(dis(RIGHT));
+  Serial.print(" ");
+  Serial.print(dis(FRONT));
+  Serial.print(" ");
+  Serial.print(dis(LEFT));
+  Serial.print("\n");
+
 }
 
 void loop(){
@@ -123,6 +172,7 @@ void loop(){
 }
 
 void car_loop(){
+  update_message();
   update_dis();     // 更新目前距離
   update_status();
   update_nextstate();
@@ -284,7 +334,7 @@ void step_front_right(){
       go_stop();
       front_is_empty = (dis(FRONT)<30)?false:true;  
       go_forward(-f_v);
-      delay(300);
+      delay(320);
       go_stop();
     }
   }
@@ -336,7 +386,7 @@ void step_right_left(){
   if(!dead_flag){
     /*左轉*/
     bool front_is_empty = true;
-    go_turn(-65);
+    go_turn(65);
     while(dis(LEFT)<30||dis(FRONT)<30||dis(RIGHT)>30||!front_is_empty){
       go_turn(30);
       if(dis(FRONT)>=30){
@@ -430,14 +480,14 @@ void step_dead(){
 void go_turn(float degree){
   if(degree > 0){
     /*逆時針*/
-    go_left_moto(-100);
-    go_right_moto(100);
+    go_left_moto(-225);
+    go_right_moto(225);
     delay((float)398/90*degree);
     go_stop();
   }else if(degree < 0){
     /*順時針*/
-    go_left_moto(100);
-    go_right_moto(-100);
+    go_left_moto(225);
+    go_right_moto(-225);
     delay((float)393/90*(-degree));
     go_stop();
   }
@@ -446,12 +496,12 @@ void go_turn(float degree){
 void go_turn_nonstop(int degree){
   if(degree > 0){
     /*逆時針*/
-    go_left_moto(-80);
-    go_right_moto(80);
+    go_left_moto(-225);
+    go_right_moto(225);
   }else if(degree < 0){
     /*順時針*/
-    go_left_moto(80);
-    go_right_moto(-80);
+    go_left_moto(225);
+    go_right_moto(-225);
   }
 }
 
@@ -555,13 +605,23 @@ void go_forward(){
 }
 
 void go_forward(int v){
-  go_left_moto(v);
-  go_right_moto(v);
+  if (v == 1){
+    go_left_moto(f_l_v);
+    go_right_moto(f_r_v);
+  }else{
+    go_left_moto(v);
+    go_right_moto(v);
+  }
 }
 
 void go_backward(int v){
-  go_left_moto(-v);
-  go_right_moto(-v);
+  if (v == 1){
+    go_left_moto(-f_l_v);
+    go_right_moto(-f_r_v);
+  }else{
+    go_left_moto(-v);
+    go_right_moto(-v);
+  }
 }
 
 void go_stop(){
@@ -580,20 +640,23 @@ void go_stop(){
 }
 
 void go_left_moto(int v){
+  digitalWrite(enable_left, HIGH);
   left_wheel_v = v;  // 更新車子資料
   if (v > 0){
     analogWrite(Moto1, v);
     analogWrite(Moto2, 0);
   }else if(v < 0){
-     analogWrite(Moto1, 0);
-     analogWrite(Moto2, -v);
+    analogWrite(Moto1, 0);
+    analogWrite(Moto2, -v);
   }else{
-     analogWrite(Moto1, 0);
-     analogWrite(Moto2, 0);
+    digitalWrite(enable_left, LOW);
+    analogWrite(Moto1, 0);
+    analogWrite(Moto2, 0);
   }
 }
 
 void go_right_moto(int v){  
+  digitalWrite(enable_right, HIGH);
   right_wheel_v = v; // 更新車子資料
   if (v > 0){
     analogWrite(Moto3, v);
@@ -602,9 +665,14 @@ void go_right_moto(int v){
     analogWrite(Moto3, 0);
     analogWrite(Moto4, -v);
   }else{
-     analogWrite(Moto3, 0);
-     analogWrite(Moto4, 0);
+    digitalWrite(enable_right, LOW);
+    analogWrite(Moto3, 0);
+    analogWrite(Moto4, 0);
   }
+}
+
+void update_message(){
+
 }
 
 void update_detect_state(){
@@ -615,11 +683,11 @@ void update_detect_state(){
 }
 
 void update_dis(){
-  // 更新距離
+  // // 更新距離
   for(int i=1;i<4;i++){
     distance[i] = dis(i);
   }
-  // push進stack裡面
+  // // push進stack裡面
   s_dis dis;
   dis.right = distance[RIGHT];
   dis.front = distance[FRONT];
@@ -686,7 +754,7 @@ void update_status(){
     /***************處理中間與其他的值的差****************/
     /*left*/
     int count_diff = 0; // 數與中間差異太大數量
-    Serial.print("dis.left: ");
+    // Serial.print("dis.left: ");
     for(int i = 0;i<5;i++){
       // Serial.print(change[i].left);
       // Serial.print(" ");
@@ -802,4 +870,12 @@ float dis(int sensor){
   }
   //Serial.println(distance);
   return distance;
+}
+
+void send_message(){
+  brcClient.sendToClient(PARTNER_COMM_ID, "Hello");
+  delay(2000);
+  brcClient.broadcast("World");
+  delay(2000);
+  // brcClient.endBRCClient();
 }
